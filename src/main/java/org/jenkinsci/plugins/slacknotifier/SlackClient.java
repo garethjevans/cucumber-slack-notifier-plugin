@@ -144,7 +144,7 @@ public class SlackClient {
 			final String featureFileName = feature.getKey();
 			String featureName = featureFileName.replace(".feature", "");
 			featureName = featureName.replaceAll("_", " ");
-			fields.add(shortObject("<" + hyperLink + featureFileName + ".html|" + featureName + ">"));
+			fields.add(shortObject("<" + hyperLink + featureFileName.replaceAll("\\.", "-") + ".html|" + featureName + ">"));
 			fields.add(shortObject(feature.getValue() + " %"));
 		}
 		fields.add(shortObject("-------------------------------"));
