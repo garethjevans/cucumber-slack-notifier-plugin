@@ -6,7 +6,9 @@ import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Builder;
+import hudson.tasks.BuildStepMonitor;
+import hudson.tasks.Publisher;
+import hudson.tasks.Recorder;
 import hudson.util.FormValidation;
 
 import java.io.IOException;
@@ -21,16 +23,16 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
-public class CucumberSlackBuildStepNotifier extends Builder {
+public class CucumberSlackPostBuildNotifier extends Recorder {
 
-	private static final Logger LOG = Logger.getLogger(CucumberSlackBuildStepNotifier.class.getName());
+	private static final Logger LOG = Logger.getLogger(CucumberSlackPostBuildNotifier.class.getName());
 
 	private final String channel;
 	private final String json;
 	private final boolean hideSuccessfulResults;
 
 	@DataBoundConstructor
-	public CucumberSlackBuildStepNotifier(String channel, String json, boolean hideSuccessfulResults) {
+	public CucumberSlackPostBuildNotifier(String channel, String json, boolean hideSuccessfulResults) {
 		this.channel = channel;
 		this.json = json;
 		this.hideSuccessfulResults = hideSuccessfulResults;
@@ -49,13 +51,17 @@ public class CucumberSlackBuildStepNotifier extends Builder {
 	}
 
 	@Override
-	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
+			throws InterruptedException, IOException {
 		String webhookUrl = CucumberSlack.get().getWebHookEndpoint();
 		
 		if (StringUtils.isEmpty(webhookUrl)) {
 			LOG.fine("Skipping cucumber slack notifier...");
 			return true;
 		}
+
+		// TODO Remove this line
+		LOG.info("hideSuccessfulResults = ***" + hideSuccessfulResults + "***");
 
 		CucumberSlackService service = new CucumberSlackService(webhookUrl);
 		service.sendCucumberReportToSlack(build, build.getWorkspace(), json, channel, null, hideSuccessfulResults);
@@ -69,7 +75,7 @@ public class CucumberSlackBuildStepNotifier extends Builder {
 	}
 
 	@Extension
-	public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+	public static final class DescriptorImpl extends BuildStepDescriptor<Publisher> {
 
 		private String webHookEndpoint;
 	
@@ -103,5 +109,9 @@ public class CucumberSlackBuildStepNotifier extends Builder {
 		public String getWebHookEndpoint() {
 			return webHookEndpoint;
 		}
+	}
+
+	public BuildStepMonitor getRequiredMonitorService() {
+		return BuildStepMonitor.STEP;
 	}
 }
